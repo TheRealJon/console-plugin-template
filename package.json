@@ -21,8 +21,8 @@
   },
   "devDependencies": {
     "@cypress/webpack-preprocessor": "^5.15.5",
-    "@openshift-console/dynamic-plugin-sdk": "^1.0.0",
-    "@openshift-console/dynamic-plugin-sdk-webpack": "^1.0.0",
+    "@openshift-console/dynamic-plugin-sdk": "file:../console/frontend/packages/console-dynamic-plugin-sdk/dist/core",
+    "@openshift-console/dynamic-plugin-sdk-webpack": "file:../console/frontend/packages/console-dynamic-plugin-sdk/dist/webpack",
     "@patternfly/react-core": "^5.1.1",
     "@patternfly/react-icons": "^5.1.1",
     "@patternfly/react-styles": "^5.1.1",
@@ -70,7 +70,8 @@
     "displayName": "OpenShift Console Plugin Template",
     "description": "Template project for OpenShift console plugins. Edit package.json to change this message and the plugin name.",
     "exposedModules": {
-      "ExamplePage": "./components/ExamplePage"
+      "ExamplePage": "./components/ExamplePage",
+      "CreateProjectModal": "./components/CreateProjectModal"
     },
     "dependencies": {
       "@console/pluginAPI": "*"
