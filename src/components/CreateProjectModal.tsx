@@ -5,48 +5,28 @@ import {
   Form,
   FormAlert,
   FormGroup,
-  Modal,
-  ModalVariant,
   Spinner,
   TextArea,
   TextInput,
+  spinnerSize,
+  Modal,
+  ModalVariant,
 } from '@patternfly/react-core';
 import { useTranslation } from 'react-i18next';
-import { k8sCreateResource } from '@openshift-console/dynamic-plugin-sdk/lib/utils/k8s';
-import { K8sModel } from '@openshift-console/dynamic-plugin-sdk/lib/api/common-types';
+import { useK8sModel, k8sCreate } from '@openshift-console/dynamic-plugin-sdk';
 
-const CreateProjectModal: React.FC<{ closeModal: () => void }> = ({
-  closeModal,
-}) => {
-  const { t } = useTranslation();
+const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ close }) => {
+  const { t } = useTranslation('plugin__console-plugin-template');
+  const [inProgress, setInProgress] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [name, setName] = React.useState('');
   const [displayName, setDisplayName] = React.useState('');
   const [description, setDescription] = React.useState('');
-  const [inProgress, setInProgress] = React.useState(false);
-  const [errorMessage, setErrorMessage] = React.useState('');
-
-  const thenPromise = (res) => {
-    setInProgress(false);
-    setErrorMessage('');
-    return res;
-  };
-
-  const catchError = (error) => {
-    const err =
-      error.message || t('public~An error occurred. Please try again.');
-    setInProgress(false);
-    setErrorMessage(err);
-    return Promise.reject(err);
-  };
-
-  const handlePromise = (promise) => {
-    setInProgress(true);
-
-    return promise.then(
-      (res) => thenPromise(res),
-      (error) => catchError(error),
-    );
-  };
+  const [model] = useK8sModel({
+    group: 'project.openshift.io',
+    version: 'v1',
+    kind: 'ProjectRequest',
+  });
 
   const createProject = React.useCallback(async () => {
     const data = {
@@ -56,15 +36,24 @@ const CreateProjectModal: React.FC<{ closeModal: () => void }> = ({
       displayName,
       description,
     };
-    return k8sCreateResource({ model: ProjectRequestModel, data });
+    return k8sCreate({ model, data });
   }, [description, displayName, name]);
 
   const create = () => {
-    handlePromise(createProject())
-      .then(closeModal)
+    setInProgress(true);
+    setErrorMessage('');
+    createProject()
+      .then(() => {
+        setErrorMessage('');
+        close();
+      })
       .catch((err) => {
+        setErrorMessage(err);
         // eslint-disable-next-line no-console
         console.error(`Failed to create Project:`, err);
+      })
+      .finally(() => {
+        setInProgress(false);
       });
   };
 
@@ -72,22 +61,34 @@ const CreateProjectModal: React.FC<{ closeModal: () => void }> = ({
     <Modal
       variant={ModalVariant.small}
       isOpen
-      title={t('public~Create Project')}
+      showClose={false}
+      title={t('Create project')}
+      description={t('Provided by the console plugin template!')}
       actions={
         inProgress
-          ? [<Spinner key="foo" />]
+          ? [<Spinner key="spinner" size={spinnerSize.sm} />]
           : [
-              <Button key="create" variant="primary" onClick={create}>
-                {t('public~Create')}
+              <Button
+                key="create"
+                variant="primary"
+                onClick={create}
+                disabled={inProgress}
+              >
+                {t('Create')}
               </Button>,
-              <Button key="cancel" variant="link" onClick={closeModal}>
-                {t('public~Cancel')}
+              <Button
+                key="cancel"
+                variant="link"
+                onClick={close}
+                disabled={inProgress}
+              >
+                {t('Cancel')}
               </Button>,
             ]
       }
     >
       <Form>
-        <FormGroup label={t('public~Name')} isRequired fieldId="input-name">
+        <FormGroup label={t('Name')} isRequired fieldId="input-name">
           <TextInput
             id="input-name"
             data-test="input-name"
@@ -99,10 +100,7 @@ const CreateProjectModal: React.FC<{ closeModal: () => void }> = ({
             required
           />
         </FormGroup>
-        <FormGroup
-          label={t('public~Display name')}
-          fieldId="input-display-name"
-        >
+        <FormGroup label={t('Display name')} fieldId="input-display-name">
           <TextInput
             id="input-display-name"
             name="displayName"
@@ -111,7 +109,7 @@ const CreateProjectModal: React.FC<{ closeModal: () => void }> = ({
             value={displayName || ''}
           />
         </FormGroup>
-        <FormGroup label={t('public~Description')} fieldId="input-description">
+        <FormGroup label={t('Description')} fieldId="input-description">
           <TextArea
             id="input-description"
             name="description"
@@ -136,19 +134,8 @@ const CreateProjectModal: React.FC<{ closeModal: () => void }> = ({
   );
 };
 
-const ProjectRequestModel: K8sModel = {
-  apiVersion: 'v1',
-  apiGroup: 'project.openshift.io',
-  label: 'ProjectRequest',
-  // t('public~ProjectRequest')
-  labelKey: 'public~ProjectRequest',
-  plural: 'projectrequests',
-  abbr: '',
-  kind: 'ProjectRequest',
-  id: 'projectrequest',
-  labelPlural: 'ProjectRequests',
-  // t('public~ProjectRequests')
-  labelPluralKey: 'public~ProjectRequests',
+export type CreateProjectModalProps = {
+  close: () => void;
 };
 
 export default CreateProjectModal;
